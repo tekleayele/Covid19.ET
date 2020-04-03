@@ -143,7 +143,7 @@ export default {
     TotalDoghnut,
     TotalBarChart,
     LineChart,
-    Map
+    Map,
   },
   data() {
     return {
@@ -152,18 +152,18 @@ export default {
         "covid_stages.confirmed",
         "covid_stages.hospitalized",
         "covid_stages.recovered",
-        "covid_stages.quarantined"
+        "covid_stages.quarantined",
       ],
       status: ["confirmed", "hospitalized", "recovered", "quarantined"],
       suffixesMap: {
         0: ["covid_stages.confirmed", "covid_stages.dead"],
         1: [
           "covid_stages.hospitalized_stable",
-          "covid_stages.hospitalized_critical"
+          "covid_stages.hospitalized_critical",
         ],
         2: ["covid_stages.recovered"],
-        3: ["covid_stages.quarantined"]
-      }
+        3: ["covid_stages.quarantined"],
+      },
     };
   },
   computed: {
@@ -186,18 +186,18 @@ export default {
           "Australia",
           "China",
           "France",
-          "Korea"
-        ]
+          "Korea",
+        ],
       };
 
       const chartdata = {
         series: [
           {
             name: this.$t("covid_stages.confirmed"),
-            data: whatapigives.confirmed
-          }
+            data: whatapigives.confirmed,
+          },
         ],
-        labels: whatapigives.labels
+        labels: whatapigives.labels,
       };
 
       return chartdata;
@@ -218,26 +218,26 @@ export default {
           "Somali",
           "Addis Ababa",
           "Harar",
-          "Dire Dawa"
-        ]
+          "Dire Dawa",
+        ],
       };
 
       const chartdata = {
         series: [
           {
             name: this.$t("covid_stages.confirmed"),
-            data: whatapigives.confirmed
+            data: whatapigives.confirmed,
           },
           {
             name: this.$t("covid_stages.recovered"),
-            data: whatapigives.recovored
+            data: whatapigives.recovored,
           },
           {
             name: this.$t("covid_stages.dead"),
-            data: whatapigives.dead
-          }
+            data: whatapigives.dead,
+          },
         ],
-        labels: whatapigives.labels
+        labels: whatapigives.labels,
       };
 
       return chartdata;
@@ -249,10 +249,10 @@ export default {
       const CasesTSData = {
         Deaths,
         ConfirmedCases,
-        Recovered
+        Recovered,
       };
       const startDate = new Date("2020-03-13T00:00:00.000Z");
-      const dates = ConfirmedCases.map(i =>
+      const dates = ConfirmedCases.map((i) =>
         format(addDays(startDate, i), "dd MMM")
       );
       const maxY = Math.max(...ConfirmedCases);
@@ -262,8 +262,8 @@ export default {
         yaxis: [
           {
             title: {
-              text: "Confirmed"
-            }
+              text: "Confirmed",
+            },
           },
           { show: false },
           { show: false },
@@ -273,38 +273,38 @@ export default {
             forceNiceScale: true,
             opposite: true,
             title: {
-              text: "Dead"
-            }
-          }
+              text: "Dead",
+            },
+          },
         ],
         stroke: {
           width: [3, 3, 3, 0],
-          dashArray: [0, 4, 0, 0]
+          dashArray: [0, 4, 0, 0],
         },
         labels: dates,
         series: [
           {
             name: "Confirmed",
             type: "line",
-            data: ConfirmedCases
+            data: ConfirmedCases,
           },
           {
             name: "Estimated actual",
             type: "line",
             show: false,
-            data: getEstimatedCases(ConfirmedCases, Deaths)
+            data: getEstimatedCases(ConfirmedCases, Deaths),
           },
           {
             name: "Recovered",
             type: "line",
-            data: Recovered
+            data: Recovered,
           },
           {
             name: "Dead",
             type: "column",
-            data: Deaths
-          }
-        ]
+            data: Deaths,
+          },
+        ],
       };
     },
     getHourlyLiveStats() {
@@ -319,36 +319,36 @@ export default {
             min: 0,
             max: 24,
             title: {
-              text: this.$t("calendar.hour")
-            }
-          }
+              text: this.$t("calendar.hour"),
+            },
+          },
         };
 
         const series = [
           {
             name: this.$t("covid_stages.quarantined"),
-            data: daily.quarantined.data
+            data: daily.quarantined.data,
           },
           {
             name: this.$t("covid_stages.confirmed"),
-            data: daily.confirmed.data
+            data: daily.confirmed.data,
           },
           {
             name: this.$t("covid_stages.hospitalized"),
-            data: daily.hospitalized.data
+            data: daily.hospitalized.data,
           },
           {
             name: this.$t("covid_stages.hospitalized_icu"),
-            data: daily.hospitalized_icu.data
+            data: daily.hospitalized_icu.data,
           },
           {
             name: this.$t("covid_stages.recovered"),
-            data: daily.recovered.data
+            data: daily.recovered.data,
           },
           {
             name: this.$t("covid_stages.dead"),
-            data: daily.dead.data
-          }
+            data: daily.dead.data,
+          },
         ];
 
         const d = { series, xaxis };
@@ -373,42 +373,42 @@ export default {
           "Sep",
           "Oct",
           "Nov",
-          "Dec"
+          "Dec",
         ];
         // const currentMonth = nonths[daily.month];
 
         const xaxis = {
           categories: daily.confirmed.labels,
           title: {
-            text: this.$t("calendar.days")
-          }
+            text: this.$t("calendar.days"),
+          },
         };
 
         const series = [
           {
             name: this.$t("covid_stages.quarantined"),
-            data: daily.quarantined.data
+            data: daily.quarantined.data,
           },
           {
             name: this.$t("covid_stages.confirmed"),
-            data: daily.confirmed.data
+            data: daily.confirmed.data,
           },
           {
             name: this.$t("covid_stages.hospitalized"),
-            data: daily.hospitalized.data
+            data: daily.hospitalized.data,
           },
           {
             name: this.$t("covid_stages.hospitalized_icu"),
-            data: daily.hospitalized_icu.data
+            data: daily.hospitalized_icu.data,
           },
           {
             name: this.$t("covid_stages.recovered"),
-            data: daily.recovered.data
+            data: daily.recovered.data,
           },
           {
             name: this.$t("covid_stages.dead"),
-            data: daily.dead.data
-          }
+            data: daily.dead.data,
+          },
         ];
 
         const d = { series, xaxis };
@@ -433,44 +433,44 @@ export default {
           "Sep",
           "Oct",
           "Nov",
-          "Dec"
+          "Dec",
         ];
         // const currentMonth = nonths[daily.month];
 
         const series = [
           {
             name: this.$t("covid_stages.quarantined"),
-            data: daily.quarantined.data
+            data: daily.quarantined.data,
           },
           {
             name: this.$t("covid_stages.confirmed"),
-            data: daily.confirmed.data
+            data: daily.confirmed.data,
           },
           {
             name: this.$t("covid_stages.hospitalized"),
-            data: daily.hospitalized.data
+            data: daily.hospitalized.data,
           },
           {
             name: this.$t("covid_stages.hospitalized_icu"),
-            data: daily.hospitalized_icu.data
+            data: daily.hospitalized_icu.data,
           },
           {
             name: this.$t("covid_stages.recovered"),
-            data: daily.recovered.data
+            data: daily.recovered.data,
           },
           {
             name: this.$t("covid_stages.dead"),
-            data: daily.dead.data
-          }
+            data: daily.dead.data,
+          },
         ];
         return {
           series,
           xaxis: {
             categories: months,
             title: {
-              text: this.$t("calendar.month")
-            }
-          }
+              text: this.$t("calendar.month"),
+            },
+          },
         };
       }
       return {};
@@ -492,42 +492,42 @@ export default {
           "Sep",
           "Oct",
           "Nov",
-          "Dec"
+          "Dec",
         ];
         // const currentMonth = nonths[daily.month];
 
         const xaxis = {
           categories: daily.confirmed.labels,
           title: {
-            text: this.$t("calendar.days")
-          }
+            text: this.$t("calendar.days"),
+          },
         };
 
         const series = [
           {
             name: this.$t("covid_stages.quarantined"),
-            data: daily.quarantined.data
+            data: daily.quarantined.data,
           },
           {
             name: this.$t("covid_stages.confirmed"),
-            data: daily.confirmed.data
+            data: daily.confirmed.data,
           },
           {
             name: this.$t("covid_stages.hospitalized"),
-            data: daily.hospitalized.data
+            data: daily.hospitalized.data,
           },
           {
             name: this.$t("covid_stages.hospitalized_icu"),
-            data: daily.hospitalized_icu.data
+            data: daily.hospitalized_icu.data,
           },
           {
             name: this.$t("covid_stages.recovered"),
-            data: daily.recovered.data
+            data: daily.recovered.data,
           },
           {
             name: this.$t("covid_stages.dead"),
-            data: daily.dead.data
-          }
+            data: daily.dead.data,
+          },
         ];
 
         const d = { series, xaxis };
@@ -585,7 +585,7 @@ export default {
         return { series };
       }
       return { series: [0, 0, 0, 0, 0, 0] };
-    }
+    },
   },
 
   methods: {
@@ -593,7 +593,7 @@ export default {
     ...mapActions("auth", { getApiToken: "getApiToken" }),
     ...mapActions("communities", {
       getAllCommunities: "getAllCommunities",
-      getCommunity: "getCommunity"
+      getCommunity: "getCommunity",
     }),
     async getStats() {
       this.loading = true;
@@ -605,10 +605,10 @@ export default {
         this.loading = false;
       }
     },
-    getCat: function(index) {
+    getCat: function (index) {
       return this.$t(this.labels[index]);
     },
-    getColorForCase: function(index) {
+    getColorForCase: function (index) {
       const status = this.status[index];
       if (status === "quarantined") return "#499ebf";
       else if (status === "confirmed") return "#f26666";
@@ -617,7 +617,7 @@ export default {
       else if (status === "recovered") return "#50bfa0";
       else if (status === "dead") return "#122a40";
       else return "grey";
-    }
+    },
   },
   async mounted() {
     this.getStats();
@@ -628,6 +628,6 @@ export default {
         // let record = this.getCommunity( { id: { id: "INSERT_ID_HERE" } } )
       });
     });
-  }
+  },
 };
 </script>

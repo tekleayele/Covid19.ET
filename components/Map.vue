@@ -1,38 +1,37 @@
 <template>
-  <v-container id="map-wrap" :style="mapstyle">
+  <v-container id="map-wrap" class="py-0" :style="mapstyle">
     <v-row style="height: 100%;">
-      <v-col cols="12" xs="12" sm="12" md="12" lg="12">
-        <v-card elevation="0" hover tile style="height: 100%; border-top: 0px;">
-          <GmapMap
-          :center="{
-           lat: 8.96,
-           lng: 40.35
-          }"
-          :zoom="6.31"
-          map-type-id="terrain"
-          style="width: 100%; height: 100%;"
-          ref="frontPageMap"
-        >
-          <GmapInfoWindow
-            v-if="showingInfoWindow"
-            @closeclick="showingInfoWindow=false"
-            :options="{
-                        pixelOffset: {
-                            width: 0,
-                            height: 0
-                        }
-                    }"
-            :position="infoWindowPosition"
-          >
-            <v-row>
-              <v-col xs="12">
-                <h2 class="map__region_name">{{ infoWindowDetails.name }}</h2>
-                <p class="map__region_total_cases">Total Cases: <span class="status_classes">{{ infoWindowDetails.totalCases }}</span></p>
-              </v-col>
-            </v-row>
-        </GmapInfoWindow>
-        </GmapMap>
-      </v-card>
+      <v-col cols="12" xs="12" sm="12" md="12" lg="12" class="py-0">
+        <v-card elevation="1" tile style="height: 100%; border-top: 0px;">
+          <client-only>
+            <l-map
+              ref="map"
+              :zoom="6"
+              :center="[8.9, 40.5]"
+              class="elevation-0"
+              style="z-index: 0"
+            >
+              <!-- <l-tile-layer url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png" /> -->
+              <l-tile-layer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <l-geo-json
+                :geojson="geojson"
+                :options="geojsonOptions"
+              ></l-geo-json>
+              <l-control position="topright">
+                <v-progress-circular
+                  v-if="loading"
+                  indeterminate
+                  color="primary"
+                ></v-progress-circular>
+                <v-btn small rounded @click="fetchData">
+                  <v-icon>mdi-reload</v-icon>
+                </v-btn>
+              </l-control>
+            </l-map>
+          </client-only>
+        </v-card>
       </v-col>
     </v-row>
   </v-container>
@@ -40,293 +39,244 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import axios from 'axios'
-import _forEach from 'lodash/forEach'
-import _map from 'lodash/map'
-import _find from 'lodash/find'
-import _filter from 'lodash/filter'
-import {gmapApi} from 'vue2-google-maps'
-import administrativeZoneDataAll from '../resources/ethiopia_administrative_zones_full.json'
+import axios from "axios";
+import ethiopiaMap from "@/resources/ethiopia_regions.json";
+import { latLng, latLngBounds } from "leaflet";
 
-const POLYGON_COLORS = [
+const COLOR_RANGES = [
+  "#888",
   "#228b22",
   "#ff8000",
-  "#ff0000"
-]
-
-function roundValue(value, decimals) {
-  return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
-}
-
-function polygonColor(count) {
-  if (count === 0) {
-    return POLYGON_COLORS[0]
+  "orangered",
+  "red",
+  "darkred"
+];
+const SAMPLE_DATA = {
+  "ET-TI": {
+    tested: 200,
+    confirmed: 1,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-AF": {
+    tested: 200,
+    confirmed: 0,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-AM": {
+    tested: 400,
+    confirmed: 4,
+    hospitalized: 3,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-BE": {
+    tested: 100,
+    confirmed: 0,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-OR": {
+    tested: 500,
+    confirmed: 4,
+    hospitalized: 2,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-GA": {
+    tested: 50,
+    confirmed: 0,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-SN": {
+    tested: 100,
+    confirmed: 1,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-SO": {
+    tested: 100,
+    confirmed: 0,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-AA": {
+    tested: 500,
+    confirmed: 25,
+    hospitalized: 20,
+    critical: 2,
+    recovered: 2,
+    dead: 2
+  },
+  "ET-HA": {
+    tested: 50,
+    confirmed: 0,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
+  },
+  "ET-DD": {
+    tested: 50,
+    confirmed: 5,
+    hospitalized: 0,
+    critical: 0,
+    recovered: 0,
+    dead: 0
   }
-
-  if (count < 1 && count > 0) {
-    return POLYGON_COLORS[1]
-  }
-
-  if (count > 1) {
-    return POLYGON_COLORS[2]
-  }
-}
-
-function transformDataForGoogleMaps(latLongData) {
-  return { lat: parseFloat(roundValue(latLongData[1], 3)) ? parseFloat(roundValue(latLongData[1], 3)) : 0, lng: parseFloat(roundValue(latLongData[0], 3)) ? parseFloat(roundValue(latLongData[0], 3)) : 0 }
-}
-
-function createNewRegionRecord(data) {
-  return {
-    adminRegion3Id: data.properties.ID_3,
-    name: data.properties.NAME_3,
-    totalCases: 0,
-    totalRecovered: 0,
-    totalHospitalized: 0,
-    totalIsolated: 0,
-    totalDeceased: 0,
-    firstCase: null,
-  }
-}
+};
 
 export default {
   props: {
     mapstyle: {
       type: String,
-      default: "min-height: 660px; height: 100%; padding: 0;"
+      default: "min-height: 810px; height: 100%;"
+    },
+    onRegionClick: {
+      type: Function,
+      default: undefined
+    },
+    onRegionHover: {
+      type: Function,
+      default: undefined
     }
   },
 
   data() {
     return {
-      map: undefined,
-      administrativeZoneDataAll: administrativeZoneDataAll,
-      regionSelected: false,
-      showingInfoWindow: false,
-      infoWindowPosition: null,
-      infoWindowDetails: null,
-      currentRegion: null,
-      regionRecords: [],
-      regionOverlayRecords: [],
-      largestCases: 1,
-      sampleData: [
-        { 
-            name: "Enderta",
-            lat: 13.493334,
-            lng: 39.46907,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Enderta",
-            lat: 13.49452,
-            lng: 39.46907,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Gambela",
-            lat: 8.248474,
-            lng: 34.589961,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Amaro",
-            lat: 7.051976,
-            lng: 38.495342,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Somali",
-            lat: 9.352147,
-            lng: 42.79737,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "WEREDA 01",
-            lat: 9.010117,
-            lng: 38.761353,
-            confirmed: 22,
-            hospitalized: 20,
-            critical: 2,
-            dead: 0
-        },
-        { 
-            name: "Harar/Hundene",
-            lat: 9.312948,
-            lng: 42.123789,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Dire Dawa",
-            lat: 9.600638,
-            lng: 41.855466,
-            confirmed: 1,
-            hospitalized: 1,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Afambo",
-            lat: 11.795548,
-            lng: 41.009302,
-            confirmed: 0,
-            hospitalized: 0,
-            critical: 0,
-            dead: 0
-        },
-        { 
-            name: "Bati",
-            lat: 8.540664,
-            lng: 39.268965,
-            confirmed: 2,
-            hospitalized: 2,
-            critical: 0,
-            dead: 0
-        },
-      ],
+      regionData: SAMPLE_DATA,
+      totalCases: Object.values(SAMPLE_DATA).reduce(
+        (sum, item) => sum + item.confirmed,
+        0
+      ),
       loading: false,
-      markers: false,
-      geojson: false,
+      geojson: ethiopiaMap,
       geojsonOptions: {
-        style: {
-          color: "#ffd443",
-          weight: 2,
-          opacity: 0.15
-        }
+        onEachFeature: this.handleFeatureEvents,
+        style: this.getStyle
       }
     };
   },
-
-  computed: {
-      google: gmapApi,
-  },
-
   methods: {
-    getRegionRecords() {
-      this.regionRecords = []
-      this.regionOverlayRecords = _map(this.administrativeZoneDataAll[0].features, (data, index) => {
-        let regionRecord = createNewRegionRecord(data)
-        this.regionRecords.push(regionRecord)
+    highlightFeature(e) {
+      var layer = e.target;
 
-        const formattedCoordinates = _map(data.geometry.coordinates[0], (latLongData) => {
-          const coordinates = transformDataForGoogleMaps(latLongData)
-          return coordinates
-        })
-
-        return { adminRegion3Id: data.properties.ID_3, name: data.properties.NAME_3, key: index, paths: formattedCoordinates, strokeColor: "#000000", strokeWeight: 2, strokeOpacity: 1.0, fillColor: POLYGON_COLORS[1], fillOpacity: 0.45 }
-    })
-    },
-    createPolygons() {
-      _forEach(this.regionOverlayRecords, (regionOverlayRecord) => {
-        let regionId = regionOverlayRecord.adminRegion3Id
-        let regionName = regionOverlayRecord.name
-
-        let regionRecordForOverlay = _find(this.regionRecords, { 'adminRegion3Id': regionId })
-        let matchingRecords = _filter(this.sampleData, { 'name': regionName })
-
-        const caseLevelColor = polygonColor(matchingRecords.length)
-
-        var polygon = new this.google.maps.Polygon({
-            paths: regionOverlayRecord.paths,
-            strokeColor: regionOverlayRecord.strokeColor,
-            strokeOpacity: regionOverlayRecord.strokeOpacity,
-            strokeWeight: regionOverlayRecord.strokeWeight,
-            fillColor: caseLevelColor,
-            fillOpacity: regionOverlayRecord.fillOpacity,
-        });
-
-        this.google.maps.event.addListener(polygon, 'mouseover', (e) => this.mouseOverPolygon(e, polygon, regionOverlayRecord));
-        this.google.maps.event.addListener(polygon, 'mouseout', (e) => this.mouseOutPolygon(e));
-        polygon.setMap(this.map)
-      })
-    },
-    mouseOverPolygon(e, polygon, regionOverlayRecord) {
-      console.log("mouseover")
-
-      var bounds = new google.maps.LatLngBounds();
-      polygon.getPath().forEach(function (path, index) {
-          bounds.extend(path);
+      layer.setStyle({
+        color: "black",
+        fillOpacity: 0.7
       });
-      let polygonCenter = bounds.getCenter()
+      layer.bringToFront();
 
-      let latLngData = {
-          lat: parseFloat(roundValue(polygonCenter.lat(), 3)),
-        lng: parseFloat(roundValue(polygonCenter.lng(), 3))
+      if (this.$props.onRegionHover) {
+        this.$props.onRegionHover(feature);
       }
-      
-      let regionId = regionOverlayRecord.adminRegion3Id
-      let regionName = regionOverlayRecord.name
-      let regionRecordForOverlay = _find(this.regionRecords, { 'adminRegion3Id': regionId })
-      let matchingRecords = _filter(this.sampleData, { 'name': regionName })
+    },
+    resetHighlight(e) {
+      var layer = e.target;
 
-      this.infoWindowDetails = {
-        name: regionName,
-        totalCases: matchingRecords.length
+      layer.setStyle({
+        color: "white",
+        fillOpacity: 0.75
+      });
+      // layer.sendToBack();
+    },
+    handleClickRegion(e) {
+      if (this.$refs.map) {
+        this.$refs.map.mapObject.fitBounds(e.target.getBounds());
+      }
+      const feature = e.target.feature;
+
+      if (this.$props.onRegionClick) {
+        this.$props.onRegionClick(feature);
+      }
+    },
+    handleFeatureEvents(feature, layer) {
+      layer.on({
+        mouseover: this.highlightFeature,
+        mouseout: this.resetHighlight,
+        click: this.handleClickRegion
+      });
+
+      const featureProps = feature.properties;
+      const regionalCases = this.regionData[feature.id];
+
+      layer.bindTooltip(
+        `<div class="map-region-info">
+          <div><h2>${featureProps.NAME_EN}</h2></div>
+          <div>TESTED: <strong>${regionalCases.tested}</strong></div>
+          <div>CONFIRMED: <strong>${regionalCases.confirmed}</strong></div>
+          <div>RECOVERED: <strong>${regionalCases.recovered}</strong></div>
+          <div>DEAD: <strong>${regionalCases.dead}</strong></div>
+          </div>
+          `,
+        { permanent: false, sticky: true, className: "map-region-info" }
+      );
+    },
+    getColor(featureProps) {
+      const data = this.regionData[featureProps.id];
+
+      if (!data || !data.confirmed) {
+        return COLOR_RANGES[0];
       }
 
-      console.log('polygon mouseover')
-      console.log(latLngData)
+      const confirmedPct = data.confirmed / this.totalCases;
 
-      this.showingInfoWindow = true
-      this.infoWindowPosition = latLngData
+      if (confirmedPct <= 0.05) {
+        return COLOR_RANGES[1];
+      } else if (confirmedPct > 0.05 && confirmedPct <= 0.1) {
+        return COLOR_RANGES[2];
+      } else if (confirmedPct > 0.1 && confirmedPct <= 0.2) {
+        return COLOR_RANGES[3];
+      } else if (confirmedPct > 0.2 && confirmedPct <= 0.5) {
+        return COLOR_RANGES[4];
+      } else {
+        return COLOR_RANGES[5];
+      }
     },
-    mouseOutPolygon(e) {
-      this.showingInfoWindow = false
-      this.infoWindowDetails = null
-      this.infoWindowPosition = null
+    getStyle(feature) {
+      return {
+        fillColor: this.getColor(feature.properties),
+        fillOpacity: 0.75,
+        weight: 1.5,
+        color: "white",
+        opacity: 1
+      };
     },
-    fetchFromServer() {
+    fetchData() {
       this.loading = true;
-      //TODO url here for map data
-      // this.$axios
-      //   .get("https://api.pmo.gov.et/v1/patients/?format=json&limit=0")
-      //   .then(res => {
-      //     this.loading = false;
-      //     // const markers = [];
-      //     // res.data.results.forEach(item => {
-      //     //   if (item.lat && item.lng) {
-      //     //     markers.push({
-      //     //       id: item.id,
-      //     //       latlng: L.latLng(item.lat, item.lng),
-      //     //       info: `${item}</br> status: ${item.status}`,
-      //     //       color: this.getColor(item.status)
-      //     //     });
-      //     //   }
-      //     //   this.markers = markers;
-      //     // });
-      //   })
-      //   .catch(err => {
-      //     this.loading = false;
-      //     console.log(err);
-      //   });
-    },
-  },
-  created() {
+
+      this.$axios
+        .get("https://api.pmo.gov.et/v1/cases/?format=json&limit=0")
+        .then(res => {
+          this.loading = false;
+          res.shs.results.forEach(item => {
+            // TODO: update regionData
+          });
+        })
+        .catch(err => {
+          this.loading = false;
+          console.log(err);
+        });
+    }
   },
   mounted() {
-    this.$refs.frontPageMap.$mapPromise.then((map) => {
-        this.map = map
-        this.getRegionRecords()
-        this.createPolygons()
-     });
-    // this.fetchFromServer();
+    this.fetchData();
   }
 };
 </script>
@@ -383,5 +333,33 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+</style>
+
+<style>
+.leaflet-tooltip.map-region-info {
+  width: 200px;
+  overflow: hidden;
+  overflow-wrap: normal;
+  word-wrap: normal;
+  word-break: normal;
+  white-space: normal;
+}
+
+.leaflet-tooltip.map-region-info h2 {
+  font-size: 1rem;
+  margin: 8px auto;
+  margin-top: 0;
+}
+
+.leaflet-tooltip.map-region-info div {
+  text-align: left;
+}
+
+.leaflet-tooltip.map-region-info strong {
+  display: block;
+  font-size: 1.3rem;
+  margin: 8px auto;
+  margin-top: 2px;
 }
 </style>
